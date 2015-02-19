@@ -50,49 +50,68 @@ void main(void)
 
     while(1)
     {
-        __delay_us(5); //Wait the acquisition time (about 5us).
-        ADCON0bits.CHS = 0; //select analog input, AN0
-        ADCON0bits.GO = 1; //start the conversion
-        while(ADCON0bits.GO==1){}; //wait for the conversion to end
-        READING = ADRESL+(ADRESH*256); /*combine the 10 bits and store in
-                                         a variable*/
-
-
                                     //Gearbox motor shaft turning CW
         PORTCbits.RC3=1;            //set enable bit high
         PORTCbits.RC4=1;            //set 1A high
         PORTCbits.RC5=0;            //set 2A  low
+        
+        checkReading(); //this will only happen after 10 m0rev/for executions
 
-
-        if(READING>=800)        //when the analog output signal of encoder is greater than
-            {                    // 800 or when the infrared chip reads a blank space on the wheel
-            COUNT++;                // the chip counts 1
-            __delay_ms(200);        //delay for 200 microseconds so the chip doesn't poll constantly
-            }
-
-                
-       if(COUNT>=5)                //after a count of 5 rotate the servo one way
+        for (int loopCount = 0; loopCount < 10; loopCount++) // this will loop through the servo functions 10 times
+        {                                                       //to compensate for the 200 ms delay to poll the encoder
+            if(COUNT>=5)                //after a count of 5 rotate the servo one way
             {                    
-            PORTCbits.RC0=1;
-            __delay_ms(10);
-            PORTCbits.RC0=0;
-            __delay_ms(10);
+                // PORTCbits.RC0=1;
+                // __delay_ms(10);
+                // PORTCbits.RC0=0;
+                // __delay_ms(10);
+                m0rev();
             }
-       else
+            else
             {
-           PORTCbits.RC0=1;        //otherwise rotate the other way
-            __delay_ms(1);
-            PORTCbits.RC0=0;
-            __delay_ms(19);
+                // PORTCbits.RC0=1;        //otherwise rotate the other way
+                // __delay_ms(1);
+                // PORTCbits.RC0=0;
+                // __delay_ms(19);
+                m0for();
             }
-
-        if (COUNT==10)              //10 counts is one full rotation of the wheel
-            {
-            COUNT=0;                //reset the count after 10
-            PORTC=0b00000100;
-            }
+        }
     }
-
 }
 
+int m0for()
+{
+    PORTCbits.RC0 = 1;
+    __delay_ms(1);
+    PORTCbits.RC0 = 0;
+    __delay_ms(19);
+}
 
+int m0rev()
+{
+    PORTCbits.RC0 = 1;
+    __delay_ms(10);
+    PORTCbits.RC0 = 0;
+    __delay_ms(10);
+}
+
+int checkReading() //this function is only called after the for-loop completes, which equals 200 ms of delay
+{
+    __delay_us(5); //Wait the acquisition time (about 5us).
+    ADCON0bits.CHS = 0; //select analog input, AN0
+    ADCON0bits.GO = 1; //start the conversion
+    while(ADCON0bits.GO==1){}; //wait for the conversion to end
+    READING = ADRESL+(ADRESH*256); /*combine the 10 bits and store in
+                                     a variable*/
+    
+    if(READING>=800)          //when the analog output signal of encoder is greater than
+    {                         // 800 or when the infrared chip reads a blank space on the wheel
+        COUNT++;              // the chip counts 1
+        // __delay_ms(200);      //delay for 200 microseconds so the chip doesn't poll constantly
+        if (COUNT==10)        //10 counts is one full rotation of the wheel
+        {
+            COUNT=0;          //reset the count after 10
+            PORTC=0b00000100;
+        }
+    }
+}
